@@ -49,15 +49,26 @@ apt-get install -y nginx
 service nginx start
 sed -i -- 's/nginx/Google Cloud Platform - '"\$HOSTNAME"'/' /var/www/html/index.nginx-debian.html"
 
+Add a legacy HTTP health check resource:
+
+gcloud compute http-health-checks create basic-check
+
+Add a target pool in the same region as your instances. Run the following to create the target pool and use the health check, which is required for the service to function:
+
+  gcloud compute target-pools create www-pool \
+    --region  --http-health-check basic-check
+
 
 Create a managed instance group.
 
-cloud compute instance-groups managed create lb-backend-group \
-   --template=lb-backend-template1 --size=2 --region=us-east1
+gcloud compute instance-groups managed create lb-backend-group --template=lb-backend-template1 --size=2 --region=us-east1
+   
+  
+   
    
 Create a firewall rule named as permit-tcp-rule-582 to allow traffic (80/tcp).
 
-gcloud compute firewall-rules create permit-tcp-rule-582 \
+gcloud compute firewall-rules create permit-tcp-rule-790 \
   --network=default \
   --action=allow \
   --direction=ingress \
@@ -70,7 +81,6 @@ Create a health cehck for load balancer
 gcloud compute health-checks create http http-basic-check \
   --port 80
   
-  
   create a backend service
   
   gcloud compute backend-services create web-backend-service \
@@ -79,10 +89,29 @@ gcloud compute health-checks create http http-basic-check \
   --health-checks=http-basic-check \
   --global
   
+  Add your instance group as the backend to the backend service:
+
+gcloud compute backend-services add-backend web-backend-service   --instance-group=lb-backend-group   --instance-group-region=us-east1   --global
   
-  attach the managed instance group with named port (http:80).
   
-  gcloud compute backend-services add-backend web-backend-service   --instance-group=lb-backend-group   --instance-group-zone=asia-southeast1-b   --global
-  
+Create a URL map to route the incoming requests to the default backend service:
+
+gcloud compute url-maps create web-map-http \
+    --default-service web-backend-service
+    
+    Create a target HTTP proxy to route requests to your URL map:
+
+gcloud compute target-http-proxies create http-lb-proxy \
+    --url-map web-map-http
+    
+    Create a global forwarding rule to route incoming requests to the proxy:
+
+gcloud compute forwarding-rules create http-content-rule \
+    --address=lb-ipv4-1\
+    --global \
+    --target-http-proxy=http-lb-proxy \
+    --ports=80
+    
+    
   
   

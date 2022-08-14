@@ -58,7 +58,12 @@ Add a target pool in the same region as your instances. Run the following to cre
   gcloud compute target-pools create www-pool \
     --region  --http-health-check basic-check
 
+Add the instances to the pool:
 
+gcloud compute target-pools add-instances www-pool \
+    --instances www1,www2,www3
+    
+    
 Create a managed instance group.
 
 gcloud compute instance-groups managed create lb-backend-group --template=lb-backend-template1 --size=2 --region=us-east1
